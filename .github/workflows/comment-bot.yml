@@ -1,0 +1,41 @@
+name: Automated Comment Bot
+
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Check issue label and comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.issue;
+            const labels = context.payload.issue.labels.map(label => label.name);
+            const repoOwner = context.repo.owner;
+            
+            let comment = null;
+            
+            if (labels.includes('bug')) {
+              comment = `Thank you. We will fix it. Best regards, ${repoOwner}.`;
+            } else if (labels.includes('feature')) {
+              comment = `Thank you, we will consider to include this feature. Best regards, ${repoOwner}.`;
+            } else if (labels.includes('discussion')) {
+              comment = `Happy to discuss this topic with you. Best regards, ${repoOwner}.`;
+            }
+            
+            if (comment) {
+              await github.rest.issues.createComment({
+                owner: issue.owner,
+                repo: issue.repo,
+                issue_number: issue.number,
+                body: comment
+              });
+              console.log(`Commented on issue #${issue.number} with label match`);
+            } else {
+              console.log(`No matching label found for issue #${issue.number}, skipping comment`);
+            }
